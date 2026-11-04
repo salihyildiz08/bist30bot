@@ -55,12 +55,23 @@ class DatabaseManager:
         client = cls.get_client()
         if client:
             try:
-                client.table("stock_signals").insert(signal_data).execute()
-                return True
+                # Supabase tablosundaki resmi kolonları filtrele
+                valid_columns = [
+                    "symbol", "timeframe", "signal_type", "current_price",
+                    "target_price_1", "target_price_2", "stop_loss", "risk_reward_ratio",
+                    "rsi_14", "ema_9", "ema_21", "ema_50", "volume_ratio",
+                    "market_trend", "heavyweight_support", "ai_confidence", "ai_summary"
+                ]
+                filtered = {k: v for k, v in signal_data.items() if k in valid_columns}
+                # Float64 dönüşümleri
+                for k, v in filtered.items():
+                    if hasattr(v, 'item'):
+                        filtered[k] = v.item()
+                client.table("stock_signals").insert(filtered).execute()
             except Exception as e:
                 print(f"[DB] Supabase sinyal kaydetme hatası: {e}")
 
-        # Yerel DB'ye yaz
+        # Yerel DB'ye yaz (tüm zengin alanlarla)
         db = cls._read_local_db()
         # Aynı hisse ve timeframe için en son sinyali güncelle veya ekle
         db["signals"].insert(0, {**signal_data, "created_at": datetime.now().isoformat()})

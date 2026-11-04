@@ -85,10 +85,10 @@ def run_full_scan(timeframe: str = "daily", send_telegram: bool = True, max_stoc
         print(f" -> {sig_type} (Fiyat: {tech['current_price']} TL | Hacim: {tech['volume_ratio']}x)")
         time.sleep(0.15) # Saygılı bekleme
 
-    # 4. Telegram Bülteni
+    # 4. Telegram Bülteni (Tüm 31 Hisseyi Kapsayan)
     if send_telegram and signals:
-        print("\n⏳ 4/4 Telegram bülteni gönderiliyor...")
-        TelegramBotService.send_market_and_signals_report(market_regime, signals, timeframe=timeframe)
+        print("\n⏳ 4/4 Telegram bülteni gönderiliyor (Tüm hisseler dahil)...")
+        TelegramBotService.send_all_bist30_report(market_regime, signals, timeframe=timeframe)
         TelegramBotService.send_portfolio_summary()
 
     print("\n✅ Tarama başarıyla tamamlandı!\n")

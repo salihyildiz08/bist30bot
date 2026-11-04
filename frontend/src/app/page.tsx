@@ -387,8 +387,15 @@ export default function Dashboard() {
                               {Number(signal.current_price).toFixed(2)} TL
                             </span>
                             {signal.price_change_pct !== undefined && (
-                              <span className={`text-xs font-semibold ${signal.price_change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {signal.price_change_pct >= 0 ? '+' : ''}{signal.price_change_pct}%
+                              <span
+                                title="Bugünkü Kapanış / Fiyat Değişimi"
+                                className={`text-[11px] font-semibold px-1.5 py-0.5 rounded ${
+                                  signal.price_change_pct >= 0
+                                    ? 'bg-emerald-500/10 text-emerald-400'
+                                    : 'bg-rose-500/10 text-rose-400'
+                                }`}
+                              >
+                                Günün: {signal.price_change_pct >= 0 ? '+' : ''}{signal.price_change_pct}%
                               </span>
                             )}
                           </div>
@@ -417,20 +424,33 @@ export default function Dashboard() {
                       </div>
 
                       {/* Key Trade Levels (Stop, Hedef 1, Hedef 2) */}
-                      <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-800/80 text-xs">
-                        <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
-                          <span className="text-slate-400 block text-[10px]">Stop-Loss:</span>
-                          <span className="font-bold text-rose-400">{Number(signal.stop_loss).toFixed(2)} TL</span>
-                        </div>
-                        <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
-                          <span className="text-slate-400 block text-[10px]">Hedef 1:</span>
-                          <span className="font-bold text-emerald-400">{Number(signal.target_price_1).toFixed(2)} TL</span>
-                        </div>
-                        <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
-                          <span className="text-slate-400 block text-[10px]">Risk / Ödül:</span>
-                          <span className="font-bold text-teal-300">1 : {signal.risk_reward_ratio || 1.5}</span>
-                        </div>
-                      </div>
+                      {(() => {
+                        const curr = Number(signal.current_price);
+                        const t1 = Number(signal.target_price_1);
+                        const sl = Number(signal.stop_loss);
+                        const upside = curr > 0 ? (((t1 - curr) / curr) * 100).toFixed(1) : '0';
+                        const downside = curr > 0 ? (((curr - sl) / curr) * 100).toFixed(1) : '0';
+
+                        return (
+                          <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-800/80 text-xs">
+                            <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+                              <span className="text-slate-400 block text-[10px]">Stop-Loss:</span>
+                              <span className="font-bold text-rose-400">{sl.toFixed(2)} TL</span>
+                              <span className="text-[9px] text-rose-400/80 block mt-0.5">Risk: -%{downside}</span>
+                            </div>
+                            <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+                              <span className="text-slate-400 block text-[10px]">Hedef 1:</span>
+                              <span className="font-bold text-emerald-400">{t1.toFixed(2)} TL</span>
+                              <span className="text-[9px] text-emerald-400/90 block mt-0.5 font-medium">Potansiyel: +%{upside}</span>
+                            </div>
+                            <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+                              <span className="text-slate-400 block text-[10px]">Risk / Ödül:</span>
+                              <span className="font-bold text-teal-300">1 : {signal.risk_reward_ratio || 1.5}</span>
+                              <span className="text-[9px] text-slate-500 block mt-0.5">Ali Perşembe</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* Technical Indicators Row */}
                       <div className="flex items-center justify-between text-[11px] text-slate-400 mt-3 px-1">
