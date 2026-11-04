@@ -1,0 +1,9 @@
+# BIST 30 Yapay Zeka & Portföy Takip Motoru Bağımlılıkları
+yfinance>=1.8.0
+supabase>=2.34.0
+python-dotenv>=1.2.0
+google-genai>=2.34.0
+requests>=2.32.0
+pandas>=2.2.0
+numpy>=1.26.0
+beautifulsoup4>=4.12.0

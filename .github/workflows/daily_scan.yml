@@ -1,0 +1,35 @@
+name: BIST 30 Gunluk AI Tarama & Telegram Bulteni
+
+on:
+  schedule:
+    # Pazartesi - Cuma günleri Türkiye saatiyle 18:30 (UTC 15:30)
+    - cron: '30 15 * * 1-5'
+  workflow_dispatch: # GitHub arayüzünden manuel tetikleme desteği
+
+jobs:
+  bist30-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu Klonla
+        uses: actions/checkout@v4
+
+      - name: Python Kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Bağımlılıkları Yükle
+        run: |
+          python -m pip install --upgrade pip
+          pip install yfinance supabase python-dotenv google-genai requests pandas numpy
+
+      - name: BIST 30 Taramasını Çalıştır
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -m backend.main --timeframe daily --limit 31
