@@ -24,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install yfinance supabase python-dotenv google-genai requests pandas numpy
 
-      - name: BIST 30 Taramasını Çalıştır
+      - name: BIST 30 Taramalarını Çalıştır (Günlük, Haftalık, Aylık)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
@@ -32,4 +32,9 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
+          # 1. Günlük Tarama ve Telegram Bülteni
           python -m backend.main --timeframe daily --limit 31
+          # 2. Haftalık Tarama
+          python -m backend.main --timeframe weekly --limit 31 --no-telegram
+          # 3. Aylık Tarama
+          python -m backend.main --timeframe monthly --limit 31 --no-telegram
