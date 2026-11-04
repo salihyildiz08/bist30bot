@@ -5,7 +5,7 @@
 
 -- 1. Hisseler Tablosu (BIST 30 Şirketleri ve Temel Bilgileri)
 CREATE TABLE IF NOT EXISTS bist30_stocks (
-    symbol VARCHAR(10) PRIMARY KEY,        -- Örn: THYAO, ASELS, GARAN
+    symbol VARCHAR(10) PRIMARY KEY,        -- Örn: THYAO, ASELS, CANTE
     name VARCHAR(100) NOT NULL,            -- Örn: Türk Hava Yolları
     sector VARCHAR(50),                    -- Havacılık, Bankacılık, Holding vb.
     weight_in_index NUMERIC(5, 2),         -- BIST 30 içindeki ağırlığı (%)
@@ -23,23 +23,23 @@ CREATE TABLE IF NOT EXISTS stock_signals (
     target_price_1 NUMERIC(10, 2),
     target_price_2 NUMERIC(10, 2),
     stop_loss NUMERIC(10, 2),
-    risk_reward_ratio NUMERIC(5, 2),       -- Hedef / Stop oranı (Örn: 2.5)
+    risk_reward_ratio NUMERIC(5, 2),
     
     -- Teknik İndikatör Değerleri
     rsi_14 NUMERIC(5, 2),
     ema_9 NUMERIC(10, 2),
     ema_21 NUMERIC(10, 2),
     ema_50 NUMERIC(10, 2),
-    volume_ratio NUMERIC(5, 2),            -- Son gün hacmi / 20 günlük hacim ortalaması
+    volume_ratio NUMERIC(5, 2),
     vwap NUMERIC(10, 2),
     
     -- Piyasa Rejimi ve Endeks Etkisi
-    market_trend VARCHAR(20),              -- 'BULLISH', 'BEARISH', 'SIDEWAYS'
-    heavyweight_support BOOLEAN,           -- Lider hisseler destekliyor mu?
+    market_trend VARCHAR(20),
+    heavyweight_support BOOLEAN,
     
     -- Yapay Zeka Sentezi
     ai_confidence INT CHECK (ai_confidence BETWEEN 0 AND 100),
-    ai_summary TEXT,                       -- AI yorumu ve strateji özeti
+    ai_summary TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -49,15 +49,15 @@ CREATE INDEX IF NOT EXISTS idx_stock_signals_timeframe ON stock_signals(timefram
 -- 3. Portföyüm Tablosu (Satın Alınan Hisseler ve K/Z Takibi)
 CREATE TABLE IF NOT EXISTS user_portfolio (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID,                          -- Supabase auth.users referansı veya tek kullanıcı modu için null
+    user_id UUID,
     symbol VARCHAR(10) REFERENCES bist30_stocks(symbol) ON DELETE CASCADE,
     buy_price NUMERIC(10, 2) NOT NULL,
-    quantity NUMERIC(12, 2) NOT NULL,      -- Lot adedi
+    quantity NUMERIC(12, 2) NOT NULL,
     buy_date DATE NOT NULL DEFAULT CURRENT_DATE,
     stop_loss NUMERIC(10, 2),
     target_price NUMERIC(10, 2),
-    notes TEXT,                            -- Kullanıcının strateji notu
-    status VARCHAR(20) DEFAULT 'OPEN',     -- 'OPEN', 'CLOSED'
+    notes TEXT,
+    status VARCHAR(20) DEFAULT 'OPEN',
     sold_price NUMERIC(10, 2),
     sold_date DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -71,10 +71,10 @@ CREATE TABLE IF NOT EXISTS kap_notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     symbol VARCHAR(10) REFERENCES bist30_stocks(symbol) ON DELETE CASCADE,
     title TEXT NOT NULL,
-    category VARCHAR(100),                 -- 'Özel Durum Açıklaması', 'İhale / Yeni İş', 'Temettü', 'Bilanço'
+    category VARCHAR(100),
     summary TEXT,
-    sentiment VARCHAR(20),                 -- 'POZITIF', 'NOTR', 'NEGATIF'
-    impact_score INT CHECK (impact_score BETWEEN 1 AND 5), -- 1: Düşük, 5: Çok Yüksek
+    sentiment VARCHAR(20),
+    impact_score INT CHECK (impact_score BETWEEN 1 AND 5),
     publish_date TIMESTAMP WITH TIME ZONE,
     source_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -82,12 +82,13 @@ CREATE TABLE IF NOT EXISTS kap_notifications (
 
 CREATE INDEX IF NOT EXISTS idx_kap_symbol_date ON kap_notifications(symbol, publish_date DESC);
 
--- 5. Sistem ve Bildirim Ayarları
-CREATE TABLE IF NOT EXISTS app_settings (
-    key VARCHAR(50) PRIMARY KEY,
-    value JSONB NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- ==============================================================================
+-- RLS (ROW LEVEL SECURITY) POLİTİKALARI (Anon ve Web Paneli Erişimi İçin)
+-- ==============================================================================
+ALTER TABLE bist30_stocks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_signals DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_portfolio DISABLE ROW LEVEL SECURITY;
+ALTER TABLE kap_notifications DISABLE ROW LEVEL SECURITY;
 
 -- ==============================================================================
 -- BIST 30 BAŞLANGIÇ VERİLERİ (SEED)
