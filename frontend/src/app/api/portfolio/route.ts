@@ -10,7 +10,7 @@ async function getLiveStockPrice(symbol: string): Promise<number> {
   try {
     const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=2d&interval=1d`, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
-      next: { revalidate: 60 } // 1 dk cache
+      next: { revalidate: 30 }
     });
     if (res.ok) {
       const json = await res.json();
@@ -31,10 +31,10 @@ function readLocalDB() {
     try {
       return JSON.parse(fs.readFileSync(LOCAL_DB_PATH, 'utf-8'));
     } catch (e) {
-      return { portfolio: [], signals: [], kap_news: [] };
+      return { portfolio: [] };
     }
   }
-  return { portfolio: [], signals: [], kap_news: [] };
+  return { portfolio: [] };
 }
 
 function writeLocalDB(data: any) {
@@ -45,9 +45,10 @@ function writeLocalDB(data: any) {
   }
 }
 
-// 1. GET: Portföyü ve Anlık K/Z Değerlerini Listele
+// 1. GET: Portföyü Listele
 export async function GET() {
   let portfolioItems: any[] = [];
+  let dbSource = 'none';
 
   if (isSupabaseConfigured && supabase) {
     try {
@@ -59,45 +60,20 @@ export async function GET() {
 
       if (!error && data) {
         portfolioItems = data;
+        dbSource = 'supabase';
+      } else if (error) {
+        console.error('[Supabase GET Error]:', error);
       }
     } catch (e) {
-      console.error('Supabase portfolio fetch error:', e);
+      console.error('Supabase fetch exception:', e);
     }
   }
 
-  if (portfolioItems.length === 0) {
+  // Sadece Supabase yapılandırılmamışsa local DB'ye bak
+  if (portfolioItems.length === 0 && !isSupabaseConfigured) {
     const local = readLocalDB();
     portfolioItems = (local.portfolio || []).filter((p: any) => p.status === 'OPEN');
-  }
-
-  // Eğer hiç kayıt yoksa başlangıç için örnek kayıt ekleyelim
-  if (portfolioItems.length === 0) {
-    portfolioItems = [
-      {
-        id: 'mock-1',
-        symbol: 'THYAO',
-        buy_price: 275.0,
-        quantity: 100,
-        buy_date: '2026-10-28',
-        stop_loss: 265.0,
-        target_price: 320.0,
-        notes: '200 günlük EMA desteğinden kırılımla alındı',
-        status: 'OPEN',
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'mock-2',
-        symbol: 'ASELS',
-        buy_price: 340.0,
-        quantity: 50,
-        buy_date: '2026-11-01',
-        stop_loss: 330.0,
-        target_price: 380.0,
-        notes: 'Yeni savunma ihalesi beklentisi',
-        status: 'OPEN',
-        created_at: new Date().toISOString()
-      }
-    ];
+    dbSource = 'local';
   }
 
   // Her hisse için anlık fiyat ve K/Z hesapla
@@ -111,21 +87,16 @@ export async function GET() {
       const profitLossAmount = Number((totalValue - totalCost).toFixed(2));
       const profitLossPct = Number((((livePrice - buyPrice) / (buyPrice || 1)) * 100).toFixed(2));
 
-      // AI Danışman Tavsiyesi
-      let aiAdvice = 'TUT';
+      let aiAdvice = '🟢 KORU';
       const stop = Number(item.stop_loss || 0);
       const target = Number(item.target_price || 0);
 
       if (stop > 0 && livePrice <= stop) {
-        aiAdvice = '🚨 STOP OL! Fiyat stop seviyesini kırdı.';
+        aiAdvice = '🚨 STOP OL!';
       } else if (target > 0 && livePrice >= target) {
-        aiAdvice = '🎯 HEDEF GÖRÜLDÜ! Kâr realizasyonu yap.';
+        aiAdvice = '🎯 HEDEF GÖRÜLDÜ!';
       } else if (profitLossPct >= 12) {
-        aiAdvice = '💰 KISMİ KÂR AL (%12+ primde, stopu yukarı taşı).';
-      } else if (profitLossPct <= -4) {
-        aiAdvice = '⚠️ DİKKAT: Zarar büyüyor, stop seviyesine sadık kal.';
-      } else {
-        aiAdvice = '🟢 KORU: Trend destekleri korunuyor.';
+        aiAdvice = '💰 KÂR AL!';
       }
 
       return {
@@ -140,7 +111,7 @@ export async function GET() {
     })
   );
 
-  return NextResponse.json({ success: true, portfolio: enrichedItems });
+  return NextResponse.json({ success: true, source: dbSource, portfolio: enrichedItems });
 }
 
 // 2. POST: Yeni Hisse Alımı Kaydet
@@ -150,7 +121,7 @@ export async function POST(request: Request) {
     const { symbol, buy_price, quantity, buy_date, stop_loss, target_price, notes } = body;
 
     if (!symbol || !buy_price || !quantity) {
-      return NextResponse.json({ success: false, error: 'Hisse sembolü, alış fiyatı ve adet zorunludur.' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Hisse sembolü, fiyat ve adet zorunludur.' }, { status: 400 });
     }
 
     const newItem = {
@@ -161,21 +132,27 @@ export async function POST(request: Request) {
       stop_loss: stop_loss ? parseFloat(stop_loss) : null,
       target_price: target_price ? parseFloat(target_price) : null,
       notes: notes || '',
-      status: 'OPEN',
-      created_at: new Date().toISOString()
+      status: 'OPEN'
     };
 
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from('user_portfolio').insert(newItem).select();
-      if (!error && data) {
+      if (error) {
+        console.error('[Supabase INSERT Hatası]:', error);
+        return NextResponse.json({
+          success: false,
+          error: `Supabase Hatası (${error.code}): ${error.message}. Lütfen Supabase SQL Editor'da 'ALTER TABLE user_portfolio DISABLE ROW LEVEL SECURITY;' çalıştırınız.`
+        }, { status: 403 });
+      }
+      if (data && data.length > 0) {
         return NextResponse.json({ success: true, item: data[0] });
       }
     }
 
-    // Local DB'ye yaz
+    // Supabase yapılandırılmamışsa local DB
     const local = readLocalDB();
     const id = 'local-' + Date.now();
-    const saved = { ...newItem, id };
+    const saved = { ...newItem, id, created_at: new Date().toISOString() };
     local.portfolio = local.portfolio || [];
     local.portfolio.push(saved);
     writeLocalDB(local);
@@ -186,7 +163,7 @@ export async function POST(request: Request) {
   }
 }
 
-// 3. DELETE: Pozisyonu Sil veya Kapat
+// 3. DELETE: Pozisyonu Sil
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -196,8 +173,20 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: 'ID gereklidir.' }, { status: 400 });
     }
 
+    // Mock id kontrolü
+    if (id.startsWith('mock-')) {
+      return NextResponse.json({ success: true, message: 'Örnek kayıt kaldırıldı.' });
+    }
+
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('user_portfolio').delete().eq('id', id);
+      const { error } = await supabase.from('user_portfolio').delete().eq('id', id);
+      if (error) {
+        console.error('[Supabase DELETE Hatası]:', error);
+        return NextResponse.json({
+          success: false,
+          error: `Supabase Hatası (${error.code}): ${error.message}. Lütfen Supabase SQL Editor'da 'ALTER TABLE user_portfolio DISABLE ROW LEVEL SECURITY;' çalıştırınız.`
+        }, { status: 403 });
+      }
     }
 
     const local = readLocalDB();

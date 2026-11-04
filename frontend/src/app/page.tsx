@@ -97,19 +97,28 @@ export default function Dashboard() {
         // Portföyü yeniden yükle
         const updated = await fetch('/api/portfolio').then(r => r.json());
         if (updated.portfolio) setPortfolio(updated.portfolio);
+      } else {
+        alert(data.error || 'Hisse eklenirken bir hata oluştu.');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Ekleme hatası:', e);
+      alert('İstek gönderilirken hata oluştu: ' + e.message);
     }
   };
 
   const handleDeletePortfolio = async (id: string) => {
     if (!confirm('Bu pozisyonu portföyünüzden silmek istediğinize emin misiniz?')) return;
     try {
-      await fetch(`/api/portfolio?id=${id}`, { method: 'DELETE' });
-      setPortfolio(prev => prev.filter(p => p.id !== id));
-    } catch (e) {
+      const res = await fetch(`/api/portfolio?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setPortfolio(prev => prev.filter(p => String(p.id) !== String(id)));
+      } else {
+        alert(data.error || 'Pozisyon silinirken hata oluştu.');
+      }
+    } catch (e: any) {
       console.error('Silme hatası:', e);
+      alert('Silme hatası: ' + e.message);
     }
   };
 
