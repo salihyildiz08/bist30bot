@@ -438,25 +438,35 @@ export default function Dashboard() {
                         const curr = Number(signal.current_price);
                         const t1 = Number(signal.target_price_1);
                         const sl = Number(signal.stop_loss);
-                        const upside = curr > 0 ? (((t1 - curr) / curr) * 100).toFixed(1) : '0';
-                        const downside = curr > 0 ? (((curr - sl) / curr) * 100).toFixed(1) : '0';
+                        const upsidePct = curr > 0 ? Number((((t1 - curr) / curr) * 100).toFixed(1)) : 0;
+                        const downsidePct = curr > 0 ? Number((((curr - sl) / curr) * 100).toFixed(1)) : 0;
 
                         return (
                           <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-800/80 text-xs">
                             <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
-                              <span className="text-slate-400 block text-[10px]">Stop-Loss:</span>
+                              <span className="text-slate-400 block text-[10px]">
+                                {isSell ? 'Direnç / Stop:' : 'Stop-Loss:'}
+                              </span>
                               <span className="font-bold text-rose-400">{sl.toFixed(2)} TL</span>
-                              <span className="text-[9px] text-rose-400/80 block mt-0.5">Risk: -%{downside}</span>
+                              <span className="text-[9px] text-rose-400/80 block mt-0.5">
+                                {curr <= sl ? '⚠️ Stop Seviyesinde' : `Mesafe: -%${Math.abs(downsidePct)}`}
+                              </span>
                             </div>
                             <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
-                              <span className="text-slate-400 block text-[10px]">Hedef 1:</span>
-                              <span className="font-bold text-emerald-400">{t1.toFixed(2)} TL</span>
-                              <span className="text-[9px] text-emerald-400/90 block mt-0.5 font-medium">Potansiyel: +%{upside}</span>
+                              <span className="text-slate-400 block text-[10px]">
+                                {isSell ? 'Tepki / Hedef:' : 'Hedef 1:'}
+                              </span>
+                              <span className={`font-bold ${isSell ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {t1.toFixed(2)} TL
+                              </span>
+                              <span className={`text-[9px] block mt-0.5 font-medium ${isSell ? 'text-amber-400/90' : 'text-emerald-400/90'}`}>
+                                {upsidePct > 0 ? `Potansiyel: +%${upsidePct}` : 'Hedefe Ulaşıldı'}
+                              </span>
                             </div>
                             <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
                               <span className="text-slate-400 block text-[10px]">Risk / Ödül:</span>
                               <span className="font-bold text-teal-300">1 : {signal.risk_reward_ratio || 1.5}</span>
-                              <span className="text-[9px] text-slate-500 block mt-0.5">Ali Perşembe</span>
+                              <span className="text-[9px] text-slate-500 block mt-0.5">Disiplin Oranı</span>
                             </div>
                           </div>
                         );
