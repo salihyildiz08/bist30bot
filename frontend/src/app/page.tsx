@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [kapNews, setKapNews] = useState<KapNotification[]>([]);
   const [marketRegime, setMarketRegime] = useState<MarketRegime | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
 
   // Add Portfolio Modal state
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -61,6 +62,7 @@ export default function Dashboard() {
       if (portRes.portfolio) setPortfolio(portRes.portfolio);
       if (kapRes.news) setKapNews(kapRes.news);
       if (regRes) setMarketRegime(regRes);
+      setLastUpdated(new Date().toLocaleTimeString('tr-TR'));
     } catch (e) {
       console.error('Veri yükleme hatası:', e);
     } finally {
@@ -201,10 +203,17 @@ export default function Dashboard() {
 
           {/* Right Action buttons */}
           <div className="flex items-center space-x-2">
+            {lastUpdated && (
+              <span className="hidden sm:flex items-center space-x-1.5 text-[11px] text-slate-300 bg-slate-800/80 px-2.5 py-1.5 rounded-lg border border-slate-700/50 shadow-inner">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="font-mono text-emerald-300 font-medium">{lastUpdated}</span>
+              </span>
+            )}
             <button
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 px-3 py-2 rounded-lg transition"
+              className="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 px-3 py-2 rounded-lg transition active:scale-95"
+              title="Anlık BIST Fiyatlarını ve Sinyalleri Yenile"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
               <span>Yenile</span>
