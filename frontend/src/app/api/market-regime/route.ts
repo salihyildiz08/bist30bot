@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const res = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/XU100.IS?range=1mo&interval=1d', {
       headers: { 'User-Agent': 'Mozilla/5.0' },
-      next: { revalidate: 300 } // 5 dk cache
+      cache: 'no-store'
     });
 
     if (res.ok) {

@@ -49,11 +49,12 @@ export default function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const fetchOpts: RequestInit = { cache: 'no-store' };
       const [sigRes, portRes, kapRes, regRes] = await Promise.all([
-        fetch(`/api/signals?timeframe=${timeframe}`).then(r => r.json()),
-        fetch('/api/portfolio').then(r => r.json()),
-        fetch('/api/kap').then(r => r.json()),
-        fetch('/api/market-regime').then(r => r.json())
+        fetch(`/api/signals?timeframe=${timeframe}&t=${Date.now()}`, fetchOpts).then(r => r.json()),
+        fetch(`/api/portfolio?t=${Date.now()}`, fetchOpts).then(r => r.json()),
+        fetch(`/api/kap?t=${Date.now()}`, fetchOpts).then(r => r.json()),
+        fetch(`/api/market-regime?t=${Date.now()}`, fetchOpts).then(r => r.json())
       ]);
 
       if (sigRes.signals) setSignals(sigRes.signals);

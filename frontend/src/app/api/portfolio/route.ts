@@ -3,6 +3,9 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import fs from 'fs';
 import path from 'path';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const LOCAL_DB_PATH = path.resolve(process.cwd(), '..', 'local_db.json');
 
 async function getLiveStockPrice(symbol: string): Promise<number> {
